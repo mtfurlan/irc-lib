@@ -7,6 +7,11 @@
 int conn;
 char sbuf[512];
 
+char *nick = "test";
+char *channel = "#test";
+char *host = "localhost";
+char *port = "6667";
+
 void raw(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -16,12 +21,23 @@ void raw(char *fmt, ...) {
     write(conn, sbuf, strlen(sbuf));
 }
 
+void processMessage(char* from, char* where, char* command, char* target, char* message){
+    if(!strncmp(message, nick, strlen(nick)) && message[strlen(nick)] == ':') {
+        //Addressed to us (in format 'nick: some message'
+        //strip out our name
+        message += strlen(nick)+1;
+        //There might be a space after :
+        if(message[0] == ' ') {
+            message++;
+        }
+        //Now we have the message addressed at us.
+
+        raw("%s %s :%s", command, target, message);
+    }
+}
+
 int main() {
 
-    char *nick = "test";
-    char *channel = "#test";
-    char *host = "localhost";
-    char *port = "6667";
 
     char *user, *command, *where, *message, *sep, *target;
     int i, j, l, sl, o = -1, start, wordcount;
@@ -56,6 +72,7 @@ int main() {
                     // there is a prefix, so we handle it.
                     wordcount = 0;
                     user = command = where = message = NULL;
+                    //process message
                     for (j = 1; j < l; j++) {
                         if (buf[j] == ' ') {
                             buf[j] = '\0';
@@ -71,7 +88,7 @@ int main() {
                             if (j < l - 1) message = buf + j + 1;
                             break;
                         }
-                    }
+                    }//end process message
 
                     if (wordcount < 2) continue;
 
@@ -82,9 +99,9 @@ int main() {
                         if ((sep = strchr(user, '!')) != NULL) user[sep - user] = '\0';
                         if (where[0] == '#' || where[0] == '&' || where[0] == '+' || where[0] == '!') target = where; else target = user;
                         printf("[from: %s] [reply-with: %s] [where: %s] [reply-to: %s] %s", user, command, where, target, message);
-                        //raw("%s %s :%s", command, target, message); // If you enable this the IRCd will get its "*** Looking up your hostname..." messages thrown back at it but it works...
+                        processMessage(user, where, command, target, message);
                     }
-                }//else no prefix, not a case we care about
+                }//The message isn't PING, and has no prefix. Not sure messages like this exist.
             }//end if we have entire thing in buffer
         }//end for
     }//end while we read (forever)
