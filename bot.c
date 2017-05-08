@@ -53,7 +53,7 @@ void processMessage(char* from, char* where, char* command, char* target, char* 
         //Now we have the message addressed at us.
         printf("action: [%s]; args: [%s]\n", action, args);
 
-        raw("%s %s :Bot Says Hi\r\n", command, target);
+        raw("%s %s :%s\r\n", command, target, args);
     }
 }
 
