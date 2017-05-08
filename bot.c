@@ -30,6 +30,8 @@ void intHandler(int dummy) {
 
 void processMessage(char* from, char* where, char* command, char* target, char* message){
     if(!strncmp(message, nick, strlen(nick)) && message[strlen(nick)] == ':') {
+        char* action = NULL;
+        char* args = NULL;
         //Addressed to us (in format 'nick: some message'
         //strip out our name
         message += strlen(nick)+1;
@@ -37,9 +39,21 @@ void processMessage(char* from, char* where, char* command, char* target, char* 
         if(message[0] == ' ') {
             message++;
         }
+        action = args = message;
+        while(args[0] != ' ' && args[0] != '\0') {
+            args++;
+        }
+        if(args[0] != '\0') {
+            args[0] = '\0';
+            args++;
+        } else {
+            args = NULL;
+        }
+        //action now is the first word, args is the action arguments or null
         //Now we have the message addressed at us.
+        printf("action: [%s]; args: [%s]\n", action, args);
 
-        raw("%s %s :%s", command, target, message);
+        raw("%s %s :Bot Says Hi\r\n", command, target);
     }
 }
 
@@ -108,7 +122,12 @@ int main() {
                         if (where == NULL || message == NULL) continue;
                         if ((sep = strchr(user, '!')) != NULL) user[sep - user] = '\0';
                         if (where[0] == '#' || where[0] == '&' || where[0] == '+' || where[0] == '!') target = where; else target = user;
-                        printf("[from: %s] [reply-with: %s] [where: %s] [reply-to: %s] %s", user, command, where, target, message);
+                        //process \n\r out of message
+                        printf("strlen: %d, -1: %d, -2: %d\n", strlen(message), message[strlen(message)-1], message[strlen(message)-2]);
+                        if(strlen(message) > 2) {
+                            message[strlen(message)-2] = '\0';
+                        }
+                        printf("[from: %s] [reply-with: %s] [where: %s] [reply-to: %s] %s\n", user, command, where, target, message);
                         processMessage(user, where, command, target, message);
                     }
                 }//The message isn't PING, and has no prefix. Not sure messages like this exist.
