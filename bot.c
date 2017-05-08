@@ -3,6 +3,8 @@
 #include <string.h>
 #include <netdb.h>
 #include <stdarg.h>
+#include <signal.h>
+#include <stdlib.h>
 
 int conn;
 char sbuf[512];
@@ -19,6 +21,11 @@ void raw(char *fmt, ...) {
     va_end(ap);
     printf("<< %s", sbuf);
     write(conn, sbuf, strlen(sbuf));
+}
+
+void intHandler(int dummy) {
+    raw("QUIT :coming back someday\r\n");
+    exit(0);
 }
 
 void processMessage(char* from, char* where, char* command, char* target, char* message){
@@ -50,6 +57,8 @@ int main() {
     getaddrinfo(host, port, &hints, &res);
     conn = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     connect(conn, res->ai_addr, res->ai_addrlen);
+
+    signal(SIGINT, intHandler);
 
     raw("USER %s 0 0 :%s\r\n", nick, nick);
     raw("NICK %s\r\n", nick);
