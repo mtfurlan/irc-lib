@@ -45,7 +45,6 @@ void processMessage(char* from, char* where, char* command, char* target, char* 
 
 int main() {
 
-
     char *user, *command, *where, *message, *sep, *target;
     int i, j, l, sl, o = -1, start, wordcount;
     char buf[513];
@@ -65,12 +64,14 @@ int main() {
 
     while ((sl = read(conn, sbuf, 512))) {
         for (i = 0; i < sl; i++) {
+            //We read till one message is done, and process that buffer.
             o++;
             buf[o] = sbuf[i];
             if ((i > 0 && sbuf[i] == '\n' && sbuf[i - 1] == '\r') || o == 512) {
                 buf[o + 1] = '\0';
                 l = o;
                 o = -1;
+                //We hit message length, or \n\r, so we have a full message. Process it.
 
                 printf(">> %s", buf);
 
