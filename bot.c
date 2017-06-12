@@ -28,7 +28,7 @@ void intHandler(int dummy) {
     exit(0);
 }
 
-void processMessage(char* from, char* where, char* command, char* target, char* message){
+void processMessage(char* from, char* where, char* target, char* message){
     if(!strncmp(message, nick, strlen(nick)) && message[strlen(nick)] == ':') {
         char* action = NULL;
         char* args = NULL;
@@ -53,7 +53,7 @@ void processMessage(char* from, char* where, char* command, char* target, char* 
         //Now we have the message addressed at us.
         printf("action: [%s]; args: [%s]\n", action, args);
 
-        raw("%s %s :%s\r\n", command, target, args);
+        raw("PRIVMSG %s :%s\r\n", target, args);
     }
 }
 
@@ -90,6 +90,7 @@ int main() {
                 printf(">> %s", buf);
 
                 if (!strncmp(buf, "PING", 4)) {
+                    //Is "PING and some message" we return "PONG and some message"
                     buf[1] = 'O';
                     raw(buf);
                 } else if (buf[0] == ':') {
@@ -118,19 +119,24 @@ int main() {
 
                     if (!strncmp(command, "001", 3) && channel != NULL) {
                         raw("JOIN %s\r\n", channel);
-                    } else if (!strncmp(command, "PRIVMSG", 7) || !strncmp(command, "NOTICE", 6)) {
-                        if (where == NULL || message == NULL) continue;
-                        if ((sep = strchr(user, '!')) != NULL) user[sep - user] = '\0';
+                    } else if (!strncmp(command, "PRIVMSG", 7) ) {
+                        if (where == NULL || message == NULL) {
+                            printf("where or message null");
+                            continue;
+                        }
+                        if ((sep = strchr(user, '!')) != NULL) {
+                            user[sep - user] = '\0';
+                        }
                         if (where[0] == '#' || where[0] == '&' || where[0] == '+' || where[0] == '!') target = where; else target = user;
                         //process \n\r out of message
                         printf("strlen: %d, -1: %d, -2: %d\n", strlen(message), message[strlen(message)-1], message[strlen(message)-2]);
                         if(strlen(message) > 2) {
                             message[strlen(message)-2] = '\0';
                         }
-                        printf("[from: %s] [reply-with: %s] [where: %s] [reply-to: %s] %s\n", user, command, where, target, message);
-                        processMessage(user, where, command, target, message);
+                        printf("[from: %s] [where: %s] [reply-to: %s] %s\n", user, where, target, message);
+                        processMessage(user, where, target, message);
                     }
-                }//The message isn't PING, and has no prefix. Not sure messages like this exist.
+                }//else the message isn't PING, and has no prefix. Not sure messages like this exist in the wild
             }//end if we have entire thing in buffer
         }//end for
     }//end while we read (forever)
