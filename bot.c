@@ -127,9 +127,14 @@ int main() {
                         if ((sep = strchr(user, '!')) != NULL) {
                             user[sep - user] = '\0';
                         }
-                        if (where[0] == '#' || where[0] == '&' || where[0] == '+' || where[0] == '!') target = where; else target = user;
+                        //If it is one of the 4 channel types, where is the channel, else it's the user
+                        if (where[0] == '#' || where[0] == '&' || where[0] == '+' || where[0] == '!') {
+                            target = where;
+                        }else{
+                            target = user;
+                        }
                         //process \n\r out of message
-                        printf("strlen: %d, -1: %d, -2: %d\n", strlen(message), message[strlen(message)-1], message[strlen(message)-2]);
+                        //printf("strlen: %d, -1: %d, -2: %d\n", strlen(message), message[strlen(message)-1], message[strlen(message)-2]);
                         if(strlen(message) > 2) {
                             message[strlen(message)-2] = '\0';
                         }
