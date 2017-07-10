@@ -1,0 +1,6 @@
+{
+  "host": "localhost",
+  "port": "6667",
+  "nick": "testBot",
+  "channel": "#test"
+}

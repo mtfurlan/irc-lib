@@ -6,14 +6,112 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#include "jsmn/jsmn.h"
+
 int conn;
 char sbuf[512];
 
-char *nick = "test";
-char *channel = "#test";
+typedef struct config {
+    char *host;
+    char *port;
+    char *nick;
+    char *channel;
+} config;
+
 char *host = "localhost";
 char *port = "6667";
+char *nick = "test";
+char *channel = "#test";
+config conf;
 
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+    if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
+            strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+        return 0;
+    }
+    return -1;
+}
+
+int saveToConfigIfMatch(char* name, char** configDest, char* configBuf, jsmntok_t* tokens, int token) {
+    int length = tokens[token].end - tokens[token].start;
+    if ((int)strlen(name) == length && strncmp(configBuf + tokens[token].start, name, length) == 0) {
+        printf("- %s: %.*s\n", name, tokens[token+1].end-tokens[token+1].start, configBuf + tokens[token+1].start);
+        *configDest = strndup(configBuf + tokens[token+1].start, tokens[token+1].end-tokens[token+1].start);
+        return 1;
+    }
+    return 0;
+}
+
+int readConfig(){
+    int r;
+    int i;
+    jsmn_parser p;
+    jsmntok_t tokens[42]; /* We expect no more than 42 tokens */
+
+    char *configBuf = 0;
+    long length;
+    FILE *f = fopen("config.json", "rb");
+    if(!f){
+        printf("failed to open 'config.json'\n");
+        return 1;
+    }
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    configBuf = malloc(length);
+    if(!configBuf){
+        fclose(f);
+        printf("failed to malloc configBuf for config\n");
+        return 1;
+    }
+    if(fread(configBuf, 1, length, f) <= 0) {
+        fclose(f);
+        printf("failed to read config\n");
+        return 1;
+    }
+    fclose(f);
+
+    //we have read config into configBuf
+
+    jsmn_init(&p);
+    r = jsmn_parse(&p, configBuf, strlen(configBuf), tokens, sizeof(tokens)/sizeof(tokens[0]));
+    if (r < 0) {
+        printf("Failed to parse JSON: %d\n", r);
+        return 1;
+    }
+    printf("parsed\n");
+
+
+    /* Assume the top-level element is an object */
+    if (r < 1 || tokens[0].type != JSMN_OBJECT) {
+        printf("config expected to be object\n");
+        return 1;
+    }
+
+    for (i = 1; i < r; i++) {
+        if(tokens[i].type == JSMN_STRING || tokens[i].type == JSMN_PRIMITIVE) {
+            if (saveToConfigIfMatch("host", &conf.host, configBuf, tokens, i)) {
+                i++;
+                continue;
+            }
+            if (saveToConfigIfMatch("port", &conf.port, configBuf, tokens, i)) {
+                i++;
+                continue;
+            }
+            if (saveToConfigIfMatch("nick", &conf.nick, configBuf, tokens, i)) {
+                i++;
+                continue;
+            }
+            if (saveToConfigIfMatch("channel", &conf.channel, configBuf, tokens, i)) {
+                i++;
+                continue;
+            }
+        } else {
+            printf("not string or primitive; key: %.*s\n", tokens[i].end-tokens[i].start,
+                    configBuf + tokens[i].start);
+        }
+    }
+}
 void raw(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -63,6 +161,13 @@ int main() {
     int i, j, l, sl, o = -1, start, wordcount;
     char buf[513];
     struct addrinfo hints, *res;
+
+    readConfig();
+    printf("*host: %s\n", conf.host);
+    printf("*port: %s\n", conf.port);
+    printf("*nick: %s\n", conf.nick);
+    printf("*channel: %s\n", conf.channel);
+    exit(0);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
