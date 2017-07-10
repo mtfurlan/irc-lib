@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=
+CFLAGS=-ggdb
 LDFLAGS=
 
 bot: bot.o jsmn/libjsmn.a
@@ -15,10 +15,10 @@ jsmn/libjsmn.a:
 
 # https://superuser.com/a/181543/270114
 watch: bot
-	inotifywait -q -m -e create . | while read -r directory events filename; do if [ "$$filename" = "bot.c" ]; then echo "change"; pkill bot; $(MAKE) bot && ./bot & fi done
+	inotifywait -q -m -e create . | while read -r directory events filename; do if [ "$$filename" = "bot.c" ]; then echo "change"; pkill --signal SIGINT bot; $(MAKE) bot && ./bot & fi done
 
 clean:
-	rm bot
+	rm bot bot.o
 	$(MAKE) -C jsmn clean
 
 .PHONY: watch clean

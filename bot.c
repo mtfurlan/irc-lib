@@ -29,8 +29,12 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 int saveToConfigIfMatch(char* name, char** configDest, char* configBuf, jsmntok_t* tokens, int token) {
     int length = tokens[token].end - tokens[token].start;
     if ((int)strlen(name) == length && strncmp(configBuf + tokens[token].start, name, length) == 0) {
-        *configDest = strndup(configBuf + tokens[token+1].start, tokens[token+1].end-tokens[token+1].start);
-        return 1;
+        if(tokens[token+1].type == JSMN_STRING) {
+            *configDest = strndup(configBuf + tokens[token+1].start, tokens[token+1].end-tokens[token+1].start);
+            return 1;
+        } else {
+            printf("unknown type %.*s\n", length, configBuf + tokens[token].start);
+        }
     }
     return 0;
 }
@@ -166,7 +170,7 @@ int main() {
 
     if(readConfig(&conf) != 0) {
         printf("can't read config, failing out");
-        exit(0);
+        exit(1);
     }
 
     memset(&hints, 0, sizeof hints);
@@ -222,7 +226,7 @@ int main() {
 
                     if (wordcount < 2) continue;
 
-                    if (!strncmp(command, "001", 3) && conf.channel != NULL) {
+                    if (!strncmp(command, "001", 3)) {
                         raw("JOIN %s\r\n", conf.channel);
                     } else if (!strncmp(command, "PRIVMSG", 7) ) {
                         if (where == NULL || message == NULL) {
